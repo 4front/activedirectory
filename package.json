@@ -1,0 +1,25 @@
+{
+  "name": "4front-active-directory",
+  "version": "1.0.0",
+  "description": "Active Directory identity provider for 4front platform.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "4front",
+    "identity",
+    "AD"
+  ],
+  "files": [
+    "index.js",
+    "README.md",
+    "package.json"
+  ],
+  "author": "David Von Lehman <https://github.com/dvonlehman>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "activedirectory": "^0.7.0",
+    "debug": "^2.2.0"
+  }
+}
