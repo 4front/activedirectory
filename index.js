@@ -23,7 +23,7 @@ module.exports = function(settings) {
           return callback(err);
 
         debug("user %s authenticated", username);
-        callback(null, {username, username});
+        callback(null, {username: username});
 
         // "cn=readonly,cn=users,dc=myorg,dc=com"
         //TODO: Would be cool to lookup the user details to
