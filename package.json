@@ -1,5 +1,5 @@
 {
-  "name": "4front-active-directory",
+  "name": "4front-activedirectory",
   "version": "1.0.0",
   "description": "Active Directory identity provider for 4front platform.",
   "main": "index.js",
