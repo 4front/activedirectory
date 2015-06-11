@@ -23,25 +23,14 @@ module.exports = function(options) {
 
   var bodyParser = require('body-parser').urlencoded({extended: false});
 
-  return function(req, res, next) {
+  var middleware = function(req, res, next) {
     bodyParser(req, res, function() {
       var username = req.body[options.usernameProperty];
       var password = req.body[options.passwordProperty];
 
-      if (_.isEmpty(username))
-        return next(Error.http(401, "Username missing", {code: "usernameMissing"}));
-      else if (_.isEmpty(password))
-        return next(Error.http(401, "Password missing", {code: "passwordMissing"}));
+      authenticate(username, password, function(err, user) {
+        if (err) return next(err);
 
-      ad.authenticate(username, password, function(err, authenticated) {
-        if (err) {
-          if (/InvalidCredentialsError/.test(err.toString()))
-            return next(Error.http(401, "Invalid credentials", {code: "invalidCredentials"}));
-          else
-            return next(err);
-        }
-
-        debug("user %s authenticated", username);
         req.ext.user = {
           userId: username,
           username: username
@@ -51,4 +40,30 @@ module.exports = function(options) {
       });
     });
   };
+
+  function authenticate(username, password, callback) {
+    if (_.isEmpty(username))
+      return callback(Error.http(401, "Username missing", {code: "usernameMissing"}));
+    else if (_.isEmpty(password))
+      return callback(Error.http(401, "Password missing", {code: "passwordMissing"}));
+
+    ad.authenticate(username, password, function(err, authenticated) {
+      if (err) {
+        if (/InvalidCredentialsError/.test(err.toString()))
+          return callback(Error.http(401, "Invalid credentials", {code: "invalidCredentials"}));
+        else
+          return callback(err);
+      }
+
+      callback(null, {
+        userId: username,
+        username: username
+      });
+    });
+  };
+
+  // Expose the authenticate function so it can be invoked in non-middleware scenarios.
+  middleware.authenticate = authenticate;
+
+  return middleware;
 };
