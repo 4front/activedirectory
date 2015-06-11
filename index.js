@@ -1,45 +1,54 @@
+var _ = require('lodash');
 var ActiveDirectory = require('activedirectory');
 var debug = require('debug');
 
-module.exports = function(settings) {
-  if (!settings.ldapBaseDN)
+require('simple-errors');
+
+module.exports = function(options) {
+  if (!options.ldapBaseDN)
     throw new Error("Missing ldapBaseDN setting");
 
-  if (!settings.ldapUrl)
+  if (!options.ldapUrl)
     throw new Error("Missing ldapBaseDN setting");
 
   var ad = new ActiveDirectory({
-    url: settings.ldapUrl,
-    baseDN: settings.ldapBaseDN
+    url: options.ldapUrl,
+    baseDN: options.ldapBaseDN
   });
 
-  return {
-    name: 'Active Directory',
-    authenticate: function(username, password, callback) {
-      debug("authenticate user");
+  _.defaults(options, {
+    usernameProperty: 'username',
+    passwordProperty: 'password'
+  });
+
+  var bodyParser = require('body-parser').urlencoded({extended: false});
+
+  return function(req, res, next) {
+    bodyParser(req, res, function() {
+      var username = req.body[options.usernameProperty];
+      var password = req.body[options.passwordProperty];
+
+      if (_.isEmpty(username))
+        return next(Error.http(401, "Username missing", {code: "usernameMissing"}));
+      else if (_.isEmpty(password))
+        return next(Error.http(401, "Password missing", {code: "passwordMissing"}));
 
       ad.authenticate(username, password, function(err, authenticated) {
-        if (err)
-          return callback(err);
+        if (err) {
+          if (/InvalidCredentials/.test(err.toString()))
+            return next(Error.http(401, "Invalid credentials", {code: "InvalidCredentials"}));
+          else
+            return next(err);
+        }
 
         debug("user %s authenticated", username);
-        callback(null, {username: username});
+        req.ext.user = {
+          userId: username,
+          username: username
+        };
 
-        // "cn=readonly,cn=users,dc=myorg,dc=com"
-        //TODO: Would be cool to lookup the user details to
-        // get a nicer display name. For now just returning the
-        // username itself.
-        // http://stackoverflow.com/questions/17795007/node-js-ldap-auth-user
-        // ad.findUser("", function(err, user) {
-        //   if (err) return callback(err);
-        //
-        //   debugger;
-        //   console.log("user %o", user);
-        //
-        //   // Lookup the user to get their display name?
-        //   callback(null, {username: username});
-        // });
+        next();
       });
-    }
+    });
   };
 };

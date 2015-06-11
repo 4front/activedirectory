@@ -1,7 +1,7 @@
 {
-  "name": "4front-activedirectory",
+  "name": "4front-ad-auth",
   "version": "1.0.0",
-  "description": "Active Directory identity provider for 4front platform.",
+  "description": "Active Directory auth middleware for 4front platform.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -20,6 +20,15 @@
   "license": "Apache-2.0",
   "dependencies": {
     "activedirectory": "^0.7.0",
-    "debug": "^2.2.0"
+    "body-parser": "^1.12.4",
+    "debug": "^2.2.0",
+    "lodash": "^3.9.3",
+    "simple-errors": "^1.0.1"
+  },
+  "devDependencies": {
+    "express": "^4.12.4",
+    "mockery": "^1.4.0",
+    "sinon": "^1.15.1",
+    "supertest": "^1.0.1"
   }
 }
