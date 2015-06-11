@@ -35,8 +35,8 @@ module.exports = function(options) {
 
       ad.authenticate(username, password, function(err, authenticated) {
         if (err) {
-          if (/InvalidCredentials/.test(err.toString()))
-            return next(Error.http(401, "Invalid credentials", {code: "InvalidCredentials"}));
+          if (/InvalidCredentialsError/.test(err.toString()))
+            return next(Error.http(401, "Invalid credentials", {code: "invalidCredentials"}));
           else
             return next(err);
         }

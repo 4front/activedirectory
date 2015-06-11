@@ -46,11 +46,24 @@ describe('ActiveDirectory', function() {
       res.json(req.ext);
     });
 
+    this.server.use(function(err, req, res, next) {
+      if (!err.status)
+        err.status = 500;
+
+      res.statusCode = err.status;
+      if (err.status < 500)
+        res.json(err);
+      else {
+        console.error(err);
+        res.json({});
+      }
+    });
+
     this.authenticate = sinon.spy(function(username, password, callback) {
       if (username === self.username && password === self.password)
         callback();
       else {
-        callback(new Error("InvalidCredentials"));
+        callback(new Error("InvalidCredentialsError"));
       }
     });
 
@@ -69,6 +82,39 @@ describe('ActiveDirectory', function() {
           userId: self.username,
           username: self.username
         });
+      })
+      .end(done);
+  });
+
+  it('returns 401 error for incorrect password', function(done) {
+    supertest(this.server).post('/login')
+      .type('form')
+      .send({username: this.username, password: 'wrong_password'})
+      .expect(401)
+      .expect(function(res) {
+        assert.equal(res.body.code, 'invalidCredentials');
+      })
+      .end(done);
+  });
+
+  it('returns 401 error for missing username', function(done) {
+    supertest(this.server).post('/login')
+      .type('form')
+      .send({password: this.password})
+      .expect(401)
+      .expect(function(res) {
+        assert.equal(res.body.code, 'usernameMissing');
+      })
+      .end(done);
+  });
+
+  it('returns 401 error for missing password', function(done) {
+    supertest(this.server).post('/login')
+      .type('form')
+      .send({username: this.username})
+      .expect(401)
+      .expect(function(res) {
+        assert.equal(res.body.code, 'passwordMissing');
       })
       .end(done);
   });
