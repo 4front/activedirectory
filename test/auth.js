@@ -4,19 +4,20 @@ var mockery = require('mockery');
 var sinon = require('sinon');
 var supertest = require('supertest');
 var bodyParser = require('body-parser');
-var ActiveDirectory = require('activedirectory');
+var util = require('util');
+var EventEmitter = require('events').EventEmitter;
 
-describe('ActiveDirectory', function() {
+describe('ldap', function() {
   var self;
 
-  var ActiveDirectoryMock = function(){};
+  var ldapMock = {};
 
   before(function() {
     mockery.enable({
       warnOnUnregistered: false
     });
 
-    mockery.registerMock('activedirectory', ActiveDirectoryMock);
+    mockery.registerMock('ldapjs', ldapMock);
   });
 
   after(function() {
@@ -38,8 +39,10 @@ describe('ActiveDirectory', function() {
     });
 
     this.server.post('/login', require('..')({
-      ldapUrl: 'ldap://test.net',
-      ldapBaseDN: 'CN=users.DC=test.DC=net'
+      ldap: {
+        url: 'ldap://test.net',
+        baseDN: 'CN=users.DC=test.DC=net'
+      }
     }));
 
     this.server.use(function(req, res, next) {
@@ -59,16 +62,13 @@ describe('ActiveDirectory', function() {
       }
     });
 
-    this.authenticate = sinon.spy(function(username, password, callback) {
-      if (username === self.username && password === self.password)
-        callback();
-      else {
-        callback(new Error("InvalidCredentialsError"));
-      }
-    });
+    this.mockClient = new MockLdapClient(this.username, this.password);
 
-    ActiveDirectoryMock.prototype.authenticate = this.authenticate;
+    ldapMock.createClient = sinon.spy(function(opts) {
+      return self.mockClient;
+    });
   });
+
 
   it('logs user in successfully', function(done) {
     supertest(this.server).post('/login')
@@ -76,7 +76,8 @@ describe('ActiveDirectory', function() {
       .send({username: this.username, password: this.password})
       .expect(200)
       .expect(function(res) {
-        assert.ok(self.authenticate.calledWith(self.username, self.password));
+        assert.ok(self.mockClient.bind.calledWith(self.username, self.password));
+        assert.ok(self.mockClient.unbind.called);
 
         assert.deepEqual(res.body.user, {
           userId: self.username,
@@ -119,3 +120,18 @@ describe('ActiveDirectory', function() {
       .end(done);
   });
 });
+
+var MockLdapClient = function(username, password) {
+  this.username = username;
+  this.password = password;
+};
+util.inherits(MockLdapClient, EventEmitter);
+
+MockLdapClient.prototype.bind = sinon.spy(function(username, password, callback) {
+  if (username === this.username && password === this.password)
+    callback(null);
+  else
+    callback(new Error("InvalidCredentialsError"));
+});
+
+MockLdapClient.prototype.unbind = sinon.spy(function() {});

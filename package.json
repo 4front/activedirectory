@@ -1,7 +1,7 @@
 {
-  "name": "4front-ad-auth",
+  "name": "4front-ldap-auth",
   "version": "1.0.0",
-  "description": "Active Directory auth middleware for 4front platform.",
+  "description": "LDAP auth middleware for 4front platform.",
   "main": "index.js",
   "scripts": {
     "test": "mocha --reporter spec --bail --check-leaks test/",
@@ -23,11 +23,11 @@
   "author": "David Von Lehman <https://github.com/dvonlehman>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/4front/ad-auth"
+    "url": "https://github.com/4front/ldap-auth"
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "activedirectory": "^0.7.0",
+    "ldapjs": "git://github.com/mcavage/node-ldapjs.git",
     "body-parser": "^1.12.4",
     "debug": "^2.2.0",
     "lodash": "^3.9.3",
