@@ -29,7 +29,7 @@ describe('ldap', function() {
 
     this.username = 'test-user';
     this.password = 'password';
-
+    this.usernamePrefix = 'DOMAIN\\';
 
     this.server = express();
 
@@ -42,7 +42,8 @@ describe('ldap', function() {
       ldap: {
         url: 'ldap://test.net',
         baseDN: 'CN=users.DC=test.DC=net'
-      }
+      },
+      usernamePrefix: this.usernamePrefix
     }));
 
     this.server.use(function(req, res, next) {
@@ -62,7 +63,7 @@ describe('ldap', function() {
       }
     });
 
-    this.mockClient = new MockLdapClient(this.username, this.password);
+    this.mockClient = new MockLdapClient(this.username, this.password, this.usernamePrefix);
 
     ldapMock.createClient = sinon.spy(function(opts) {
       return self.mockClient;
@@ -70,14 +71,30 @@ describe('ldap', function() {
   });
 
 
-  it('logs user in successfully', function(done) {
+  it('logs user in successfully omitting username prefix', function(done) {
     supertest(this.server).post('/login')
       .type('form')
       .send({username: this.username, password: this.password})
       .expect(200)
       .expect(function(res) {
-        assert.ok(self.mockClient.bind.calledWith(self.username, self.password));
+        assert.ok(self.mockClient.bind.calledWith(self.usernamePrefix + self.username, self.password));
         assert.ok(self.mockClient.unbind.called);
+
+        assert.deepEqual(res.body.user, {
+          userId: self.username,
+          username: self.username
+        });
+      })
+      .end(done);
+  });
+
+  it('logs user in successfully including username prefix', function(done) {
+    supertest(this.server).post('/login')
+      .type('form')
+      .send({username: this.usernamePrefix + this.username, password: this.password})
+      .expect(200)
+      .expect(function(res) {
+        assert.ok(self.mockClient.bind.calledWith(self.usernamePrefix + self.username, self.password));
 
         assert.deepEqual(res.body.user, {
           userId: self.username,
@@ -121,14 +138,15 @@ describe('ldap', function() {
   });
 });
 
-var MockLdapClient = function(username, password) {
+var MockLdapClient = function(username, password, usernamePrefix) {
   this.username = username;
   this.password = password;
+  this.usernamePrefix = usernamePrefix;
 };
 util.inherits(MockLdapClient, EventEmitter);
 
 MockLdapClient.prototype.bind = sinon.spy(function(username, password, callback) {
-  if (username === this.username && password === this.password)
+  if (username === ((this.usernamePrefix || '') + this.username) && password === this.password)
     callback(null);
   else
     callback(new Error("InvalidCredentialsError"));

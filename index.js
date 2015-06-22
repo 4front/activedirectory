@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var debug = require('debug');
+var debug = require('debug')('4front:ldap-auth');
 var ldap = require('ldapjs');
 
 require('simple-errors');
@@ -25,12 +25,6 @@ module.exports = function(options) {
         return next(Error.http(401, "Username missing", {code: "usernameMissing"}));
       else if (_.isEmpty(password))
         return next(Error.http(401, "Password missing", {code: "passwordMissing"}));
-
-      // If there is a username prefix, prepend it if it isn't already present.
-      // This is useful for Active Dirctory auth where the domain is part
-      // of the username but you don't want users to have to type it everytime.
-      if (options.usernamePrefix && username.slice(0, usernamePrefix.length) !== options.usernamePrefix)
-        username = options.usernamePrefix + username;
 
       authenticate(username, password, function(err, user) {
         if (err) return next(err);
@@ -61,12 +55,31 @@ module.exports = function(options) {
       }
     });
 
-    client.bind(username, password, function(err, result) {
+    // If there is a username prefix, prepend it if it isn't already present.
+    // This is useful for Active Dirctory auth where the domain is part
+    // of the username but you don't want users to have to type it everytime.
+    var actualUsername;
+    if (options.usernamePrefix) {
+      if (username.slice(0, options.usernamePrefix.length) === options.usernamePrefix) {
+        actualUsername = username;
+        username = username.slice(options.usernamePrefix.length);
+      }
+      else {
+        actualUsername = options.usernamePrefix + username;
+      }
+    }
+    else
+      actualUsername = username;
+
+    debug("authenticating user %s", username);
+    client.bind(actualUsername, password, function(err, result) {
       client.unbind();
 
       if (err) {
-        if (err.toString().indexOf('InvalidCredentialsError') !== -1)
+        if (err.toString().indexOf('InvalidCredentialsError') !== -1) {
+          debug("invalid credentials for user %s", username);
           return callback(null, null);
+        }
 
         return callback(err);
       }
