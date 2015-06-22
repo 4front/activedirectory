@@ -32,16 +32,13 @@ module.exports = function(options) {
       if (options.usernamePrefix && username.slice(0, usernamePrefix.length) !== options.usernamePrefix)
         username = options.usernamePrefix + username;
 
-      authenticate(username, password, function(err, success) {
+      authenticate(username, password, function(err, user) {
         if (err) return next(err);
 
-        if (success !== true)
+        if (!user)
           return next(Error.http(401, "Could not authenticate", {code: "invalidCredentials"}));
 
-        req.ext.user = {
-          userId: username,
-          username: username
-        };
+        req.ext.user = user;
 
         next();
       });
@@ -69,12 +66,19 @@ module.exports = function(options) {
 
       if (err) {
         if (err.toString().indexOf('InvalidCredentialsError') !== -1)
-          return callback(null, false);
+          return callback(null, null);
 
         return callback(err);
       }
 
-      callback(null, true);
+      // TODO: If there are additional details on the result (like email address),
+      // then append them to the user object.
+      var user = {
+        userId: username,
+        username: username
+      };
+
+      callback(null, user);
     });
   }
 
