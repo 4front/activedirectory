@@ -1,4 +1,4 @@
-# 4front-ad-auth
+# 4front-ldap-auth
 
 [![Build Status][travis-image]][travis-url]
 [![Test Coverage][coveralls-image]][coveralls-url]
@@ -10,7 +10,7 @@ Active Directory auth middleware for [4front](http://4front.io) multi-tenant web
 ## License
 Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html).
 
-[travis-image]: https://img.shields.io/travis/4front/ad-auth.svg?style=flat
-[travis-url]: https://travis-ci.org/4front/ad-auth
-[coveralls-image]: https://img.shields.io/coveralls/4front/ad-auth.svg?style=flat
-[coveralls-url]: https://coveralls.io/r/4front/ad-auth?branch=master
+[travis-image]: https://img.shields.io/travis/4front/ldap-auth.svg?style=flat
+[travis-url]: https://travis-ci.org/4front/ldap-auth
+[coveralls-image]: https://img.shields.io/coveralls/4front/ldap-auth.svg?style=flat
+[coveralls-url]: https://coveralls.io/r/4front/ldap-auth?branch=master
