@@ -29,7 +29,7 @@ describe('ldap', function() {
 
     this.username = 'test-user';
     this.password = 'password';
-    this.usernamePrefix = 'DOMAIN\\';
+    this.usernamePrefix = 'domain\\';
 
     this.server = express();
 
@@ -133,6 +133,17 @@ describe('ldap', function() {
       .expect(401)
       .expect(function(res) {
         assert.equal(res.body.code, 'passwordMissing');
+      })
+      .end(done);
+  });
+
+  it('converts username to lowercase', function(done) {
+    supertest(this.server).post('/login')
+      .type('form')
+      .send({username: this.username.toUpperCase(), password: this.password})
+      .expect(200)
+      .expect(function(res) {
+        assert.equal(res.body.user.username, self.username);
       })
       .end(done);
   });

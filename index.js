@@ -11,8 +11,11 @@ module.exports = function(options) {
   _.defaults(options, {
     usernameProperty: 'username',
     passwordProperty: 'password',
-    usernamePrefix: null
+    usernamePrefix: ''
   });
+
+  // Ensure the username prefix is also lowercase
+  options.usernamePrefix = options.usernamePrefix.toLowerCase();
 
   var bodyParser = require('body-parser').urlencoded({extended: false});
 
@@ -54,6 +57,9 @@ module.exports = function(options) {
         return callback(err);
       }
     });
+
+    // Normalize the username to lowercase
+    username = username.toLowerCase();
 
     // If there is a username prefix, prepend it if it isn't already present.
     // This is useful for Active Dirctory auth where the domain is part
