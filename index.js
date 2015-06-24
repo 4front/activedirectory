@@ -101,8 +101,15 @@ module.exports = function(options) {
     });
   }
 
+  // Translate the username to the unique userId. In the case of LDAP just assume that the
+  // userId and the username are the same.
+  function getUserId(username, callback) {
+    callback(null, username);
+  };
+
   // Expose the authenticate function so it can be invoked in non-middleware scenarios.
   middleware.authenticate = authenticate;
+  middleware.getUserId = getUserId;
 
   return middleware;
 };
