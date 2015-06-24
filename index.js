@@ -107,9 +107,13 @@ module.exports = function(options) {
     callback(null, username);
   };
 
-  // Expose the authenticate function so it can be invoked in non-middleware scenarios.
-  middleware.authenticate = authenticate;
-  middleware.getUserId = getUserId;
+  // The main export is the middleware function so it can be declared in package.json router.
+  var exports = middleware;
 
-  return middleware;
+  // Expose the authenticate function so it can be invoked in non-middleware scenarios.
+  exports.authenticate = authenticate;
+  exports.getUserId = getUserId;
+  exports.name = 'ldap';
+
+  return exports;
 };
