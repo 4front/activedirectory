@@ -113,7 +113,7 @@ module.exports = function(options) {
   // Expose the authenticate function so it can be invoked in non-middleware scenarios.
   exports.authenticate = authenticate;
   exports.getUserId = getUserId;
-  exports.name = 'ldap';
+  exports.providerName = 'ldap';
 
   return exports;
 };
