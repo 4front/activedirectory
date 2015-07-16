@@ -12,13 +12,13 @@ var ldapOptions = {
   url: 'ldap://test.net',
   baseDN: 'DC=company,DC=net',
   usersDN: 'OU=Users,OU=Accounts,DC=company,DC=net',
-  groupsDN: 'OU=Users,OU=Accounts,DC=company,DC=net'
+  groupsDN: 'OU=Users,OU=Accounts,DC=company,DC=net',
+  usernamePrefix: 'domain\\'
 };
 
 var userCreds = {
   username: 'test-user',
-  password: 'password',
-  usernamePrefix: 'domain\\'
+  password: 'password'
 };
 
 var ldapSearchResponses = {
@@ -99,7 +99,7 @@ describe('ldap', function() {
   });
 
   it('fails with invalid credentials', function(done) {
-    this.ldap(userCreds.usernamePrefix + userCreds.username, "wrong_password", function(err, user) {
+    this.ldap(ldapOptions.usernamePrefix + userCreds.username, "wrong_password", function(err, user) {
       if (err) return done(err);
 
       assert.isUndefined(user);
@@ -107,11 +107,27 @@ describe('ldap', function() {
     });
   });
 
-  it('logs user in and gets groups', function(done) {
-    this.ldap(userCreds.usernamePrefix + userCreds.username, userCreds.password, function(err, user) {
+  it('logs user in with usernamePrefix specified', function(done) {
+    this.ldap(ldapOptions.usernamePrefix + userCreds.username, userCreds.password, function(err, user) {
       if (err) return done(err);
 
-      assert.equal(user.username, userCreds.username);
+      assert.isTrue(self.mockClient.bind.calledWith(
+        ldapOptions.usernamePrefix + userCreds.username, userCreds.password));
+
+      done();
+    });
+  });
+
+  it('logs user in and gets groups', function(done) {
+    this.ldap(userCreds.username, userCreds.password, function(err, user) {
+      if (err) return done(err);
+
+      assert.ok(user);
+      assert.isTrue(self.mockClient.bind.called);
+      assert.isTrue(self.mockClient.bind.calledWith(
+        ldapOptions.usernamePrefix + userCreds.username, userCreds.password));
+
+      assert.equal(userCreds.username, userCreds.username);
       assert.noDifferences(user.groups, ['group1', 'group2', 'group3', 'group11', 'group12',
         'group21', 'group22', 'group111', 'group211', 'group1111']);
       done();
@@ -124,7 +140,7 @@ util.inherits(MockLdapClient, EventEmitter);
 
 MockLdapClient.prototype.bind = sinon.spy(function(username, password, callback) {
   console.log("mock bind");
-  if (username === userCreds.usernamePrefix + userCreds.username && password === userCreds.password)
+  if (username === ldapOptions.usernamePrefix + userCreds.username && password === userCreds.password)
     callback();
   else
     callback(new Error("InvalidCredentialsError"));

@@ -11,7 +11,7 @@ module.exports = function(options) {
   var exports = require('./lib/middleware')(options);
 
   // Expose the authenticate function so it can be invoked in non-middleware scenarios.
-  exports.authenticate = require('./lib/ldap')(options.ldap);
+  exports.authenticate = require('./lib/ldap')(options);
 
   // Translate the username to the unique userId. In the case of LDAP just assume that the
   // userId and the username are the same.

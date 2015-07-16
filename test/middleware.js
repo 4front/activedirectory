@@ -11,12 +11,11 @@ describe('ldap', function() {
 
   var creds = {
     username: 'test-user',
-    password: 'password',
-    usernamePrefix: 'domain\\'
+    password: 'password'
   };
 
   var mockLdapLogin = sinon.spy(function(username, password, callback) {
-    if (username === creds.usernamePrefix + creds.username && password === creds.password) {
+    if (username === creds.username && password === creds.password) {
       return callback(null, {
         username: creds.username
       });
@@ -52,10 +51,7 @@ describe('ldap', function() {
       next();
     });
 
-    this.server.post('/login', require('../lib/middleware')({
-      ldap: {},
-      usernamePrefix: creds.usernamePrefix
-    }));
+    this.server.post('/login', require('../lib/middleware')({}));
 
     this.server.use(function(req, res, next) {
       res.json(req.ext);
@@ -75,28 +71,17 @@ describe('ldap', function() {
     });
   });
 
-  it('logs user in successfully omitting username prefix', function(done) {
+  it('logs user in successfully', function(done) {
     supertest(this.server).post('/login')
       .type('form')
       .send({username: creds.username, password: creds.password})
       .expect(200)
       .expect(function(res) {
-        assert.ok(mockLdapLogin.calledWith(creds.usernamePrefix + creds.username, creds.password));
+        assert.ok(mockLdapLogin.calledWith(creds.username, creds.password));
 
         assert.deepEqual(res.body.user, {
           username: creds.username
         });
-      })
-      .end(done);
-  });
-
-  it('logs user in successfully including username prefix', function(done) {
-    supertest(this.server).post('/login')
-      .type('form')
-      .send({username: creds.usernamePrefix + creds.username, password: creds.password})
-      .expect(200)
-      .expect(function(res) {
-        assert.ok(mockLdapLogin.calledWith(creds.usernamePrefix + creds.username, creds.password));
       })
       .end(done);
   });
@@ -130,17 +115,6 @@ describe('ldap', function() {
       .expect(401)
       .expect(function(res) {
         assert.equal(res.body.code, 'passwordMissing');
-      })
-      .end(done);
-  });
-
-  it('converts username to lowercase', function(done) {
-    supertest(this.server).post('/login')
-      .type('form')
-      .send({username: creds.username.toUpperCase(), password: creds.password})
-      .expect(200)
-      .expect(function(res) {
-        assert.equal(res.body.user.username, creds.username);
       })
       .end(done);
   });
