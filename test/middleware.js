@@ -32,7 +32,7 @@ describe('ldap', function() {
       warnOnUnregistered: false
     });
 
-    mockery.registerMock('./lib/auth', function(ldapOptions) {
+    mockery.registerMock('./ldap', function(ldapOptions) {
       return mockLdapLogin;
     });
   });
