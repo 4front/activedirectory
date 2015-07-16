@@ -5,19 +5,36 @@ var sinon = require('sinon');
 var supertest = require('supertest');
 var bodyParser = require('body-parser');
 var util = require('util');
-var EventEmitter = require('events').EventEmitter;
 
 describe('ldap', function() {
   var self;
 
-  var ldapMock = {};
+  var creds = {
+    username: 'test-user',
+    password: 'password',
+    usernamePrefix: 'domain\\'
+  };
+
+  var mockLdapLogin = sinon.spy(function(username, password, callback) {
+    if (username === creds.usernamePrefix + creds.username && password === creds.password) {
+      return callback(null, {
+        username: creds.username
+      });
+    }
+
+    callback(null);
+  });
 
   before(function() {
+    self = this;
+
     mockery.enable({
       warnOnUnregistered: false
     });
 
-    mockery.registerMock('ldapjs', ldapMock);
+    mockery.registerMock('./lib/auth', function(ldapOptions) {
+      return mockLdapLogin;
+    });
   });
 
   after(function() {
@@ -27,10 +44,7 @@ describe('ldap', function() {
   beforeEach(function() {
     self = this;
 
-    this.username = 'test-user';
-    this.password = 'password';
-    this.usernamePrefix = 'domain\\';
-
+    mockLdapLogin.reset();
     this.server = express();
 
     this.server.use(function(req, res, next) {
@@ -38,12 +52,9 @@ describe('ldap', function() {
       next();
     });
 
-    this.server.post('/login', require('..')({
-      ldap: {
-        url: 'ldap://test.net',
-        baseDN: 'CN=users.DC=test.DC=net'
-      },
-      usernamePrefix: this.usernamePrefix
+    this.server.post('/login', require('../lib/middleware')({
+      ldap: {},
+      usernamePrefix: creds.usernamePrefix
     }));
 
     this.server.use(function(req, res, next) {
@@ -62,27 +73,18 @@ describe('ldap', function() {
         res.json({});
       }
     });
-
-    this.mockClient = new MockLdapClient(this.username, this.password, this.usernamePrefix);
-
-    ldapMock.createClient = sinon.spy(function(opts) {
-      return self.mockClient;
-    });
   });
-
 
   it('logs user in successfully omitting username prefix', function(done) {
     supertest(this.server).post('/login')
       .type('form')
-      .send({username: this.username, password: this.password})
+      .send({username: creds.username, password: creds.password})
       .expect(200)
       .expect(function(res) {
-        assert.ok(self.mockClient.bind.calledWith(self.usernamePrefix + self.username, self.password));
-        assert.ok(self.mockClient.unbind.called);
+        assert.ok(mockLdapLogin.calledWith(creds.usernamePrefix + creds.username, creds.password));
 
         assert.deepEqual(res.body.user, {
-          userId: self.username,
-          username: self.username
+          username: creds.username
         });
       })
       .end(done);
@@ -91,15 +93,10 @@ describe('ldap', function() {
   it('logs user in successfully including username prefix', function(done) {
     supertest(this.server).post('/login')
       .type('form')
-      .send({username: this.usernamePrefix + this.username, password: this.password})
+      .send({username: creds.usernamePrefix + creds.username, password: creds.password})
       .expect(200)
       .expect(function(res) {
-        assert.ok(self.mockClient.bind.calledWith(self.usernamePrefix + self.username, self.password));
-
-        assert.deepEqual(res.body.user, {
-          userId: self.username,
-          username: self.username
-        });
+        assert.ok(mockLdapLogin.calledWith(creds.usernamePrefix + creds.username, creds.password));
       })
       .end(done);
   });
@@ -107,7 +104,7 @@ describe('ldap', function() {
   it('returns 401 error for incorrect password', function(done) {
     supertest(this.server).post('/login')
       .type('form')
-      .send({username: this.username, password: 'wrong_password'})
+      .send({username: creds.username, password: 'wrong_password'})
       .expect(401)
       .expect(function(res) {
         assert.equal(res.body.code, 'invalidCredentials');
@@ -118,7 +115,7 @@ describe('ldap', function() {
   it('returns 401 error for missing username', function(done) {
     supertest(this.server).post('/login')
       .type('form')
-      .send({password: this.password})
+      .send({password: creds.password})
       .expect(401)
       .expect(function(res) {
         assert.equal(res.body.code, 'usernameMissing');
@@ -129,7 +126,7 @@ describe('ldap', function() {
   it('returns 401 error for missing password', function(done) {
     supertest(this.server).post('/login')
       .type('form')
-      .send({username: this.username})
+      .send({username: creds.username})
       .expect(401)
       .expect(function(res) {
         assert.equal(res.body.code, 'passwordMissing');
@@ -140,27 +137,11 @@ describe('ldap', function() {
   it('converts username to lowercase', function(done) {
     supertest(this.server).post('/login')
       .type('form')
-      .send({username: this.username.toUpperCase(), password: this.password})
+      .send({username: creds.username.toUpperCase(), password: creds.password})
       .expect(200)
       .expect(function(res) {
-        assert.equal(res.body.user.username, self.username);
+        assert.equal(res.body.user.username, creds.username);
       })
       .end(done);
   });
 });
-
-var MockLdapClient = function(username, password, usernamePrefix) {
-  this.username = username;
-  this.password = password;
-  this.usernamePrefix = usernamePrefix;
-};
-util.inherits(MockLdapClient, EventEmitter);
-
-MockLdapClient.prototype.bind = sinon.spy(function(username, password, callback) {
-  if (username === ((this.usernamePrefix || '') + this.username) && password === this.password)
-    callback(null);
-  else
-    callback(new Error("InvalidCredentialsError"));
-});
-
-MockLdapClient.prototype.unbind = sinon.spy(function() {});
