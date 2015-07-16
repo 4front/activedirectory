@@ -18,7 +18,8 @@
   "files": [
     "index.js",
     "README.md",
-    "package.json"
+    "package.json",
+    "lib/*"
   ],
   "author": "David Von Lehman <https://github.com/dvonlehman>",
   "repository": {
