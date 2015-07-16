@@ -127,7 +127,9 @@ describe('ldap', function() {
       assert.isTrue(self.mockClient.bind.calledWith(
         ldapOptions.usernamePrefix + userCreds.username, userCreds.password));
 
-      assert.equal(userCreds.username, userCreds.username);
+      assert.equal(user.username, userCreds.username);
+      assert.equal(user.userId, userCreds.username);
+
       assert.noDifferences(user.groups, ['group1', 'group2', 'group3', 'group11', 'group12',
         'group21', 'group22', 'group111', 'group211', 'group1111']);
       done();
