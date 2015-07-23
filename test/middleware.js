@@ -89,13 +89,13 @@ describe('ldap', function() {
   });
 
   it('should redirect after successful authentication', function(done) {
-    middlewareOptions.successRedirectUrl = "/";
+    middlewareOptions.successUrl = "/";
 
     supertest(this.server).post('/login')
       .type('form')
       .send({username: creds.username, password: creds.password})
       .expect(302)
-      .expect('Location', middlewareOptions.successRedirectUrl)
+      .expect('Location', middlewareOptions.successUrl)
       .expect(function(res) {
         assert.ok(mockLdapLogin.calledWith(creds.username, creds.password));
       })
@@ -103,7 +103,7 @@ describe('ldap', function() {
   });
 
   it('should redirect to returnUrl from cookie', function(done) {
-    middlewareOptions.successRedirectUrl = "/";
+    middlewareOptions.successUrl = "/";
     var returnUrl = "/protected-page";
 
     supertest(this.server).post('/login')
@@ -128,18 +128,18 @@ describe('ldap', function() {
       .end(done);
   });
 
-  it('should redirect to failRedirectUrl for incorrect password', function(done) {
-    middlewareOptions.failRedirectUrl = "/failed";
+  it('should redirect to failureUrl for incorrect password', function(done) {
+    middlewareOptions.failureUrl = "/failed";
 
     supertest(this.server).post('/login')
       .type('form')
       .send({username: creds.username, password: 'wrong_password'})
       .expect(302)
-      .expect('Location', middlewareOptions.failRedirectUrl)
+      .expect('Location', middlewareOptions.failureUrl)
       .end(done);
   });
 
-  it('should return 401 for incorrect password with no failRedirectUrl', function(done) {
+  it('should return 401 for incorrect password with no failureUrl', function(done) {
     supertest(this.server).post('/login')
       .type('form')
       .send({username: creds.username, password: 'wrong_password'})
