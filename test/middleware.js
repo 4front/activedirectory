@@ -181,4 +181,19 @@ describe('ldap', function() {
       .expect(501)
       .end(done);
   });
+
+  it('should add basicAuthToken to user if specified', function(done) {
+    middlewareOptions.saveBasicAuthToken = true;
+
+    supertest(this.server).post('/login')
+      .type('form')
+      .send({username: creds.username, password: creds.password})
+      .expect(200)
+      .expect(function(res) {
+        assert.isString(res.body.user.basicAuthToken);
+        assert.equal(res.body.user.basicAuthToken, "Basic " + 
+          new Buffer(creds.username + ":" + creds.password).toString('base64'));
+      })
+      .end(done);
+  });
 });
