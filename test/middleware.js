@@ -46,6 +46,16 @@ describe('ldap', function() {
     mockLdapLogin.reset();
     this.server = express();
 
+    // Just for testing purposes obviously.
+    this.server.settings.crypto = {
+      encrypt: function(value) {
+        return new Buffer(value).toString('base64');
+      },
+      decrypt: function(value) {
+        return new Buffer(value, 'base64').toString('utf8');
+      }
+    };
+
     sessionMiddleware = require('express-session')({
       resave: false,
       secret: 'abc',
@@ -121,7 +131,7 @@ describe('ldap', function() {
       .send({username: creds.username, password: creds.password})
       .expect(200)
       .expect(function(res) {
-        assert.deepEqual(res.body.user, {
+        assert.isMatch(res.body.user, {
           username: creds.username
         });
       })
@@ -183,16 +193,17 @@ describe('ldap', function() {
   });
 
   it('should add basicAuthToken to user if specified', function(done) {
-    middlewareOptions.saveBasicAuthToken = true;
-
     supertest(this.server).post('/login')
       .type('form')
       .send({username: creds.username, password: creds.password})
       .expect(200)
       .expect(function(res) {
-        assert.isString(res.body.user.basicAuthToken);
-        assert.equal(res.body.user.basicAuthToken, "Basic " + 
-          new Buffer(creds.username + ":" + creds.password).toString('base64'));
+        assert.isObject(res.body.user.basicAuthToken);
+
+        var basicAuthToken = "Basic " + new Buffer(creds.username + ":" + creds.password).toString('base64');
+
+        assert.deepEqual(res.body.user.basicAuthToken.__encrypted,
+          self.server.settings.crypto.encrypt(basicAuthToken));
       })
       .end(done);
   });
